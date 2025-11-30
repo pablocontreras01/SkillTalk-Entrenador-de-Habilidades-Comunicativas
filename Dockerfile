@@ -1,31 +1,24 @@
-FROM python:3.10-slim
+FROM python:3.10
 
-# Arregla APT para que pueda usar HTTPS
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    ca-certificates \
-    && update-ca-certificates
-    
-# Evitar errores locales
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
 
-# Instalar dependencias del sistema
+# Dependencias del sistema
 RUN apt-get update && apt-get install -y \
+    ffmpeg \
     libgl1-mesa-glx \
     libglib2.0-0 \
     libsm6 \
     libxext6 \
     libxrender1 \
-    ffmpeg \
     && rm -rf /var/lib/apt/lists/*
-
 
 WORKDIR /app
 
 COPY requirements.txt /app/requirements.txt
 
 RUN python -m pip install --upgrade pip setuptools wheel
-RUN pip install --no-cache-dir -r /app/requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . /app
 
