@@ -1,5 +1,5 @@
 streamlit
 tensorflow==2.20.0      # Versión más reciente encontrada por el log
-mediapipe==0.10.0     # Una de las versiones más recientes con soporte 3.10+, debería funcionar con 3.13
+mediapipe   # Una de las versiones más recientes con soporte 3.10+, debería funcionar con 3.13
 numpy==1.26.4           # Compatible con Python 3.13 y TF 2.20.0
 opencv-python-headless
