@@ -1,5 +1,7 @@
-streamlit==1.51.0
-mediapipe==0.10.21
-opencv-python-headless==4.8.0.76
+streamlit==1.30.0
 numpy==1.26.4
-tensorflow==2.20.0
+opencv-contrib-python-headless==4.8.1.78
+mediapipe==0.10.20
+protobuf==3.20.3
+tensorflow==2.16.1
+keras==3.2.0
