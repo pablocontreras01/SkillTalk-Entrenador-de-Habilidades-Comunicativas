@@ -1,5 +1,10 @@
 FROM python:3.10-slim
 
+# Arregla APT para que pueda usar HTTPS
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    && update-ca-certificates
+    
 # Evitar errores locales
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
