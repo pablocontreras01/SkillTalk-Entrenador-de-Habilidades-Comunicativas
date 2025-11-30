@@ -92,7 +92,7 @@ def load_full_model(model_path: str):
         with open(model_path, "wb") as f:
             f.write(response.content)
         st.write("Modelo descargado correctamente.")
-    model = load_model(model_path)
+    model = load_model(model_path, compile=False)  # <--- aquí compile=False
     st.write("Modelo cargado exitosamente.")
     return model
 
