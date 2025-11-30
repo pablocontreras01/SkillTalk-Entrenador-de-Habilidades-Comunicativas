@@ -5,8 +5,9 @@ import mediapipe as mp
 import tensorflow as tf
 from tensorflow.keras import layers, models
 import os
-from typing import List, Optional, Dict, Tuple
+from typing import List
 import tempfile
+import requests
 
 # ====================================================================
 # CONFIGURACIÓN
@@ -93,12 +94,19 @@ def build_mlp_lstm(input_shape=(CHUNK_SIZE, N_FEATURES), num_classes=2):
 
 @st.cache_resource
 def load_model_with_weights(weights_path: str):
-    model = build_mlp_lstm()
+    # Descargar desde Google Drive si no existe
     if not os.path.exists(weights_path):
-        st.error(f"❌ Archivo de pesos no encontrado: {weights_path}")
-        return None
+        st.write("Descargando modelo desde Google Drive...")
+        url = "https://drive.google.com/uc?export=download&id=14MXbxH6axp7oF2CGK7bmY9muCcBOJ-Wt"
+        response = requests.get(url)
+        with open(weights_path, "wb") as f:
+            f.write(response.content)
+        st.write("Modelo descargado correctamente.")
+
+    model = build_mlp_lstm()
     model.load_weights(weights_path)
     model.compile(optimizer=tf.keras.optimizers.Adam(1e-3), loss='categorical_crossentropy', metrics=['accuracy'])
+    st.write("Modelo cargado exitosamente.")
     return model
 
 # ====================================================================
