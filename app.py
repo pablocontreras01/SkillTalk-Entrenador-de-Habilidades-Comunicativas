@@ -1,11 +1,11 @@
 import streamlit as st
 import os
 import tempfile
-import requests
 import cv2
 import numpy as np
 import tensorflow as tf
 import mediapipe as mp
+import requests
 from typing import List
 
 # =========================================
@@ -13,31 +13,27 @@ from typing import List
 # =========================================
 CHUNK_SIZE = 30
 CLASS_NAMES = ["Beat", "No-Gesture"]
-COLORS = {"Beat": (0, 255, 0), "No-Gesture": (255, 0, 0)}
+COLORS = {"Beat": "green", "No-Gesture": "red"}
 
 mp_pose = mp.solutions.pose
-mp_drawing = mp.solutions.drawing_utils
 
-# Kinect25 joints
-SPINE_BASE = 0; SPINE_MID = 1; NECK = 2; HEAD = 3
-SHOULDER_LEFT = 4; ELBOW_LEFT = 5; WRIST_LEFT = 6; HAND_LEFT = 7
-SHOULDER_RIGHT = 8; ELBOW_RIGHT = 9; WRIST_RIGHT = 10; HAND_RIGHT = 11
-HIP_LEFT = 12; KNEE_LEFT = 13; ANKLE_LEFT = 14; FOOT_LEFT = 15
-HIP_RIGHT = 16; KNEE_RIGHT = 17; ANKLE_RIGHT = 18; FOOT_RIGHT = 19
-SPINE_SHOULDER = 20; HANDTIP_LEFT = 21; THUMB_LEFT = 22
-HANDTIP_RIGHT = 23; THUMB_RIGHT = 24
-
+SPINE_BASE = 0
+SHOULDER_LEFT = 4
+SHOULDER_RIGHT = 8
 N_FEATURES = 25 * 3
 
+# Modelo desde Google Drive
+MODEL_FILE = "mlp_lstm_ted.keras"
+DRIVE_URL = "https://drive.google.com/uc?export=download&id=1y1XSOebGIy_Nmr_FNHzX7mHVCvxhwHSL"
+
 # =========================================
-# PREPROCESAMIENTO
+# NORMALIZACIÓN DE SKELETONS
 # =========================================
 def normalize_skeleton_sequence(seq: np.ndarray) -> np.ndarray:
     seq = seq.copy().astype(np.float32)
     seq[np.isnan(seq)] = 0.0
     root = seq[:, SPINE_BASE:SPINE_BASE+1, :]
     seq = seq - root
-
     left_shoulder = seq[:, SHOULDER_LEFT, :]
     right_shoulder = seq[:, SHOULDER_RIGHT, :]
     shoulder_vec = np.mean(left_shoulder - right_shoulder, axis=0)
@@ -53,9 +49,8 @@ def normalize_skeleton_sequence(seq: np.ndarray) -> np.ndarray:
         vx = np.array([[0,-v[2],v[1]],[v[2],0,-v[0]],[-v[1],v[0],0]])
         R = np.eye(3) + vx + vx@vx*(1/(1+c))
     seq = seq @ R.T
-
-    shoulder_dist = np.mean(np.linalg.norm(seq[:, SHOULDER_LEFT,:]-seq[:,SHOULDER_RIGHT,:], axis=1))
-    scale = 1.0/shoulder_dist if shoulder_dist>1e-6 else 1.0
+    shoulder_dist = np.mean(np.linalg.norm(seq[:, SHOULDER_LEFT,:]-seq[:, SHOULDER_RIGHT,:], axis=1))
+    scale = 1.0 / shoulder_dist if shoulder_dist>1e-6 else 1.0
     seq *= scale
     return seq
 
@@ -65,13 +60,13 @@ def create_chunks_from_skeletons(skeletons: List[np.ndarray], chunk_size: int) -
     sk_arr = np.stack(skeletons, axis=0)
     T = sk_arr.shape[0]
     chunks = []
-    for start in range(0,T,chunk_size):
-        end = start+chunk_size
+    for start in range(0, T, chunk_size):
+        end = start + chunk_size
         chunk = sk_arr[start:end]
-        if chunk.shape[0]<chunk_size:
-            last = chunk[-1] if chunk.shape[0]>0 else np.zeros((25,3), dtype=np.float32)
+        if chunk.shape[0] < chunk_size:
+            last = chunk[-1] if chunk.shape[0] > 0 else np.zeros((25,3), dtype=np.float32)
             pad = np.repeat(last[None,:,:], chunk_size-chunk.shape[0], axis=0)
-            chunk = np.concatenate([chunk,pad], axis=0)
+            chunk = np.concatenate([chunk, pad], axis=0)
         chunks.append(chunk)
     return np.stack(chunks, axis=0).astype(np.float32)
 
@@ -90,45 +85,31 @@ def extract_skeletons_from_video(video_path: str) -> List[np.ndarray]:
             image_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             results = pose.process(image_rgb)
             if results.pose_landmarks:
-                landmarks = results.pose_landmarks.landmark
-                joints = np.zeros((25,3), dtype=np.float32)
-                for idx, lm in enumerate(landmarks[:25]):
-                    joints[idx] = [lm.x, lm.y, lm.z]
-                skeletons.append(joints)
+                sk = np.array([[lm.x, lm.y, lm.z] for lm in results.pose_landmarks.landmark])
+                sk = normalize_skeleton_sequence(sk[None,:,:,:])[0]
+                skeletons.append(sk)
     cap.release()
     return skeletons
 
 # =========================================
-# MODELO `.keras` DESDE DRIVE
-MODEL_FILE = "mlp_lstm_ted_final.keras"
-DRIVE_FILE_ID = "1n9wuBQPbK_zW_PNbj2BFMGKD8NXGa-XC"
-DRIVE_DOWNLOAD_URL = f"https://drive.google.com/uc?export=download&id={DRIVE_FILE_ID}"
-
+# CARGA DEL MODELO DESDE DRIVE
+# =========================================
 @st.cache_resource
-def load_my_model(model_file: str):
+def load_model(model_file: str):
     if not os.path.exists(model_file):
-        st.write("📥 Descargando modelo desde Google Drive...")
-        response = requests.get(DRIVE_DOWNLOAD_URL)
-        if response.status_code == 200:
-            with open(model_file, "wb") as f:
-                f.write(response.content)
-            st.write("✅ Modelo descargado correctamente.")
-        else:
-            st.error(f"❌ Error descargando el modelo. Código HTTP: {response.status_code}")
-            return None
+        st.info("📥 Descargando modelo desde Google Drive...")
+        r = requests.get(DRIVE_URL, allow_redirects=True)
+        with open(model_file, "wb") as f:
+            f.write(r.content)
+        st.success("✅ Modelo descargado.")
     model = tf.keras.models.load_model(model_file)
-    st.write("✅ Modelo cargado exitosamente.")
     return model
 
-# =========================================
-# PREDICCIÓN
-# =========================================
 def predict_gestures(model, skeletons: List[np.ndarray]):
-    seq_norm = normalize_skeleton_sequence(np.stack(skeletons))
-    chunks = create_chunks_from_skeletons([seq_norm], CHUNK_SIZE)
-    X_model = prepare_chunks_for_model(chunks)
-    predictions = model.predict(X_model)
-    return predictions.argmax(axis=1)
+    chunks = create_chunks_from_skeletons(skeletons, CHUNK_SIZE)
+    X_input = prepare_chunks_for_model(chunks)
+    preds = model.predict(X_input)
+    return preds
 
 # =========================================
 # STREAMLIT APP
@@ -137,11 +118,9 @@ def main():
     st.set_page_config(page_title="Clasificador de Gestos SkillTalk", layout="wide")
     st.title("🗣️ Clasificador de Gestos")
     st.markdown("Sube un video y analiza gestos **Beat** vs **No-Gesture**")
-
-    model = load_my_model(MODEL_FILE)
-    if model is None:
-        st.stop()
-
+    
+    model = load_model(MODEL_FILE)
+    
     uploaded_file = st.file_uploader("Sube un video (MP4/AVI/MOV)", type=['mp4','avi','mov'])
     if uploaded_file:
         with tempfile.NamedTemporaryFile(delete=False, suffix='.mp4') as tmp_file:
@@ -152,7 +131,10 @@ def main():
         skeletons = extract_skeletons_from_video(video_path)
         if skeletons:
             preds = predict_gestures(model, skeletons)
-            st.write(f"Predicciones del video: {preds}")
+            for i, p in enumerate(preds):
+                cls_idx = np.argmax(p)
+                cls_name = CLASS_NAMES[cls_idx]
+                st.markdown(f"**Chunk {i+1}:** <span style='color:{COLORS[cls_name]}'>{cls_name}</span> - Probabilidad: {p[cls_idx]:.2f}", unsafe_allow_html=True)
         else:
             st.warning("No se detectaron skeletons en el video.")
 
