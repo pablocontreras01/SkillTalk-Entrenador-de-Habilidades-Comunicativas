@@ -1,32 +1,26 @@
-FROM python:3.12-slim
+FROM python:3.10-slim
 
-ENV DEBIAN_FRONTEND=noninteractive
+# Evitar errores locales
 ENV PYTHONUNBUFFERED=1
-ENV LANG=C.UTF-8
+ENV PYTHONDONTWRITEBYTECODE=1
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    ca-certificates \
-    ffmpeg \
+# Instalar dependencias del sistema
+RUN apt-get update && apt-get install -y \
+    libgl1-mesa-glx \
     libglib2.0-0 \
-    libsm6 \
-    libxrender1 \
-    libxext6 \
-    libsndfile1 \
-    build-essential \
-    wget \
-    git \
+    libglib2.0-dev \
+    ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
 COPY requirements.txt /app/requirements.txt
+
 RUN python -m pip install --upgrade pip setuptools wheel
 RUN pip install --no-cache-dir -r /app/requirements.txt
 
 COPY . /app
 
-RUN chmod +x /app/start.sh
+EXPOSE 10000
 
-ENV PORT=8501
-
-ENTRYPOINT ["/app/start.sh"]
+CMD ["streamlit", "run", "app.py", "--server.port=10000", "--server.address=0.0.0.0"]
