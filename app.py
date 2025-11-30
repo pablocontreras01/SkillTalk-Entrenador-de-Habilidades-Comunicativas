@@ -96,16 +96,17 @@ def build_mlp_lstm(input_shape=(CHUNK_SIZE, N_FEATURES), num_classes=2):
 def load_model_with_weights(weights_path: str):
     # Descargar desde Google Drive si no existe
     if not os.path.exists(weights_path):
-        st.write("Descargando modelo desde Google Drive...")
-        url = "https://drive.google.com/uc?export=download&id=14MXbxH6axp7oF2CGK7bmY9muCcBOJ-Wt"
+        st.write("Descargando pesos del modelo desde Google Drive...")
+        url = "https://drive.google.com/uc?export=download&id=1BtLzHd7sD4r0BH4JLj7lMbMs-FcvO318"
         response = requests.get(url)
         with open(weights_path, "wb") as f:
             f.write(response.content)
-        st.write("Modelo descargado correctamente.")
+        st.write("Pesos descargados correctamente.")
 
     model = build_mlp_lstm()
     model.load_weights(weights_path)
-    model.compile(optimizer=tf.keras.optimizers.Adam(1e-3), loss='categorical_crossentropy', metrics=['accuracy'])
+    model.compile(optimizer=tf.keras.optimizers.Adam(1e-3),
+                  loss='categorical_crossentropy', metrics=['accuracy'])
     st.write("Modelo cargado exitosamente.")
     return model
 
