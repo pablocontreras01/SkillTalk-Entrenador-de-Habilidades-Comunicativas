@@ -3,4 +3,3 @@ mediapipe==0.10.21
 opencv-python-headless==4.8.0.76
 numpy==1.26.4
 tensorflow==2.20.0
-# opcionalmente añade otras dependencias si las usas (p. ej. scikit-learn)
