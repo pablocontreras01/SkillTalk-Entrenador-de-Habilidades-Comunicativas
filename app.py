@@ -2,12 +2,11 @@ import streamlit as st
 import cv2
 import numpy as np
 import mediapipe as mp
-import tensorflow as tf
-from tensorflow.keras import layers, models
 import os
-from typing import List
 import tempfile
 import requests
+from tensorflow.keras.models import load_model
+from typing import List
 
 # ====================================================================
 # CONFIGURACIÓN
@@ -82,31 +81,18 @@ def prepare_chunks_for_model(chunks_4d: np.ndarray) -> np.ndarray:
     return chunks_4d.reshape(N, chunk_len, J*C)
 
 # ====================================================================
-# MODELO MLP-LSTM
-
-def build_mlp_lstm(input_shape=(CHUNK_SIZE, N_FEATURES), num_classes=2):
-    model = models.Sequential()
-    model.add(layers.TimeDistributed(layers.Dense(128, activation='relu'), input_shape=input_shape))
-    model.add(layers.TimeDistributed(layers.Dense(128, activation='relu')))
-    model.add(layers.LSTM(128, return_sequences=False))
-    model.add(layers.Dense(num_classes, activation='softmax'))
-    return model
+# CARGA DEL MODELO COMPLETO
 
 @st.cache_resource
-def load_model_with_weights(weights_path: str):
-    # Descargar desde Google Drive si no existe
-    if not os.path.exists(weights_path):
-        st.write("Descargando pesos del modelo desde Google Drive...")
-        url = "https://drive.google.com/uc?export=download&id=1BtLzHd7sD4r0BH4JLj7lMbMs-FcvO318"
+def load_full_model(model_path: str):
+    if not os.path.exists(model_path):
+        st.write("Descargando modelo completo desde Google Drive...")
+        url = "https://drive.google.com/uc?export=download&id=14MXbxH6axp7oF2CGK7bmY9muCcBOJ-Wt"
         response = requests.get(url)
-        with open(weights_path, "wb") as f:
+        with open(model_path, "wb") as f:
             f.write(response.content)
-        st.write("Pesos descargados correctamente.")
-
-    model = build_mlp_lstm()
-    model.load_weights(weights_path)
-    model.compile(optimizer=tf.keras.optimizers.Adam(1e-3),
-                  loss='categorical_crossentropy', metrics=['accuracy'])
+        st.write("Modelo descargado correctamente.")
+    model = load_model(model_path)
     st.write("Modelo cargado exitosamente.")
     return model
 
@@ -118,8 +104,8 @@ def main():
     st.title("🗣️ Clasificador de Gestos")
     st.markdown("Sube un video y analiza gestos **Beat** vs **No-Gesture**")
 
-    MODEL_WEIGHTS_PATH = "mlp_lstm_ted_weights.h5"
-    model = load_model_with_weights(MODEL_WEIGHTS_PATH)
+    MODEL_PATH = "mlp_lstm_ted.h5"
+    model = load_full_model(MODEL_PATH)
     if model is None:
         return
 
@@ -133,3 +119,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
