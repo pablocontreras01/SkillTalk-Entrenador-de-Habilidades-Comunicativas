@@ -1,12 +1,12 @@
-FROM python:3.10
+FROM python:3.10-bookworm
 
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
 
-# Dependencias del sistema
-RUN apt-get update && apt-get install -y \
+# Dependencias del sistema necesarias para OpenCV, Mediapipe y ffmpeg
+RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
-    libgl1-mesa-glx \
+    libgl1 \
     libglib2.0-0 \
     libsm6 \
     libxext6 \
