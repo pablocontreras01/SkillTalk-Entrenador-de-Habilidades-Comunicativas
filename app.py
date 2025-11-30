@@ -258,7 +258,7 @@ def main():
     st.markdown("Analiza la actividad gestual **Beat** vs. **No-Gesture** en un video:")
     st.markdown(f"**🟢 Beat (Gesto activo)** | **🔵 No-Gesture**")
 
-    MODEL_PATH = "mlp_lstm_ted.h5"
+    MODEL_PATH = "mlp_lstm_ted_final.h5"
     model = load_ml_model(MODEL_PATH)
     if model is None:
         return
