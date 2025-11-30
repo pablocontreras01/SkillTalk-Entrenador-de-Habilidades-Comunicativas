@@ -1,5 +1,6 @@
-streamlit
-tensorflow==2.20.0      # Versión más reciente encontrada por el log
-mediapipe   # Una de las versiones más recientes con soporte 3.10+, debería funcionar con 3.13
-numpy==1.26.4           # Compatible con Python 3.13 y TF 2.20.0
-opencv-python-headless
+streamlit==1.51.0
+mediapipe==0.10.21
+opencv-python-headless==4.8.0.76
+numpy==1.26.4
+tensorflow==2.20.0
+# opcionalmente añade otras dependencias si las usas (p. ej. scikit-learn)
