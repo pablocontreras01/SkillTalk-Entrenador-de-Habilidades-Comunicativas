@@ -2,5 +2,5 @@ streamlit==1.32.0
 numpy==1.24.3
 mediapipe==0.10.20
 opencv-python-headless==4.10.0.84
-tensorflow==2.19.0
+tensorflow==2.13.0
 protobuf<5
