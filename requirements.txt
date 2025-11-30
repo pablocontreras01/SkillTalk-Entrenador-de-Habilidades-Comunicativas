@@ -1,5 +1,5 @@
 streamlit
 tensorflow==2.15.0      # Versión estable de CPU para Python 3.9/3.10
 mediapipe==0.10.9       # Una versión estable y bien soportada
-numpy==1.23.5           # Compatible con TF 2.10.0
+numpy==1.26.4           # Compatible con TF 2.10.0
 opencv-python-headless  # Headless es mejor para el servidor
